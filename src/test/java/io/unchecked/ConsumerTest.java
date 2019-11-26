@@ -6,6 +6,7 @@ import static io.unchecked.API.sneakFunction;
 import static io.unchecked.API.wrap;
 import static io.unchecked.API.wrapFunction;
 import static io.unchecked.API.wrapConsumer;
+import static io.unchecked.TestsUtils.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedReader;
@@ -25,170 +26,154 @@ import org.mockito.Mockito;
 
 public class ConsumerTest {
 
-	private static final Function<Exception, VeryRuntimeException> toRuntime = VeryRuntimeException::new;
-	private static final Function<VeryCheckedException, AppCheckedException> toAnotherChecked = AppCheckedException::new;
-
-	private static final Function<Exception, AppCheckedException> anyToAnotherChecked = AppCheckedException::new;
-
-	private static final ConsumerChecked<String, VeryCheckedException> consumer = s -> consumeAndThrow(s);
-
-	private static final PredicateChecked<String, VeryCheckedException> predicator = s -> predicateAndThrow(s);
-
-	@Test
-	@DisplayName("Testing Consumer. Sneak Checked Exception.")
-	@Timeout(1)
-	void testConsumerSneak() {
-
-		//sneak
-		sneak(consumer).accept("one");
-		sneak(ConsumerTest::consumeAndThrow).accept("one");
-		sneak((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s)).accept("one");
-
-		isVeryCheckedException(() -> sneak(consumer).accept("exception"));
-		isVeryCheckedException(() -> sneak(ConsumerTest::consumeAndThrow).accept("exception"));
-		isVeryCheckedException(() -> sneak((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s)).accept("exception"));
-	}
-
-	@Test
-	@DisplayName("Testing Predicate. Sneak Predicate Exception.")
-	@Timeout(1)
-	void testPredicateSneak() {
-
-		//sneak
-		boolean one1 = sneak(predicator).test("one");
-		boolean one2 = sneak(ConsumerTest::predicateAndThrow).test("one");
-		boolean one3 = sneak((PredicateChecked<String, VeryCheckedException>) (s) -> predicateAndThrow(s)).test("one");
-
-		isVeryCheckedException(() -> sneak(predicator).test("exception"));
-		isVeryCheckedException(() -> sneak(ConsumerTest::predicateAndThrow).test("exception"));
-		isVeryCheckedException(() -> sneak((PredicateChecked<String, VeryCheckedException>) (s) -> predicateAndThrow(s)).test("exception"));
-	}
 
 
-	@Test
-	@DisplayName("Testing Consumer. Lift Checked Exception on next level.")
-	@Timeout(1)
-	void testConsumerLift() {
-		//lift
-		try {
-			lift(consumer).accept("one");
-			lift(ConsumerTest::consumeAndThrow).accept("one");
-			lift((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s)).accept("one");
-		} catch (VeryCheckedException e) {
-			Assertions.fail("Expecting no exceptions");
-		}
+    private static final ConsumerChecked<String, TestCheckedException> consumer = s -> consumeAndThrow(s);
 
-		{
-			VeryCheckedException exception = assertThrows(VeryCheckedException.class, () -> lift(consumer).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			VeryCheckedException exception = assertThrows(VeryCheckedException.class, () -> lift(ConsumerTest::consumeAndThrow).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			VeryCheckedException exception = assertThrows(VeryCheckedException.class,
-					() -> lift((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s)).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-	}
 
-	@Test
-	@DisplayName("Testing Consumer. Wrap to Runtime Exception.")
-	@Timeout(1)
-	void testConsumerWrapToRuntime() {
 
-		//wrap to runtime
-		wrap(consumer, toRuntime).accept("one");
-		wrap(ConsumerTest::consumeAndThrow, toRuntime).accept("one");
-		wrap((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s), toRuntime).accept("one");
+    @Test
+    @DisplayName("Testing Consumer. Sneak Checked Exception.")
+    @Timeout(1)
+    void testConsumerSneak() {
 
-		{
-			VeryRuntimeException exception = assertThrows(VeryRuntimeException.class, () -> wrap(consumer, toRuntime).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			VeryRuntimeException exception = assertThrows(VeryRuntimeException.class,
-					() -> wrap(ConsumerTest::consumeAndThrow, toRuntime).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			VeryRuntimeException exception = assertThrows(VeryRuntimeException.class,
-					() -> wrap((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s), toRuntime).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
+        //sneak
+        sneak(consumer).accept("one");
+        sneak(ConsumerTest::consumeAndThrow).accept("one");
+        sneak((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s)).accept("one");
 
-		Function<VeryCheckedException, AppCheckedException> f = (e) -> new AppCheckedException(e);
+        isTestCheckedException(() -> sneak(consumer).accept("exception"));
+        isTestCheckedException(() -> sneak(ConsumerTest::consumeAndThrow).accept("exception"));
+        isTestCheckedException(() -> sneak((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s)).accept("exception"));
+    }
 
-		try {
-			wrap(ConsumerTest::consumeAndThrowAB, f);
-		} catch (AppCheckedException e) {
-			e.printStackTrace();
-		}
 
-	}
 
-	@Test
-	@DisplayName("Testing Consumer. Wrap to Checked Exception.")
-	@Timeout(1)
-	void testConsumerWrapToChecked() {
-		//wrap to another checked
-		try {
-			wrap(consumer, toAnotherChecked).accept("one");
-			wrap(ConsumerTest::consumeAndThrow, toAnotherChecked).accept("one");
-			wrap((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s), toAnotherChecked).accept("one");
-		} catch (AppCheckedException e) {
-			Assertions.fail("Expecting no exceptions");
-		}
 
-		{
-			AppCheckedException exception = assertThrows(AppCheckedException.class, () -> wrap(consumer, toAnotherChecked).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			AppCheckedException exception = assertThrows(AppCheckedException.class,
-					() -> wrap(ConsumerTest::consumeAndThrow, toAnotherChecked).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-		{
-			AppCheckedException exception = assertThrows(AppCheckedException.class,
-					() -> wrap((ConsumerChecked<String, VeryCheckedException>) (s) -> consumeAndThrow(s), toAnotherChecked).accept("exception"));
-			Assertions.assertNotNull(exception);
-		}
-	}
+    @Test
+    @DisplayName("Testing Consumer. Lift Checked Exception on next level.")
+    @Timeout(1)
+    void testConsumerLift() {
+        //lift
+        try {
+            lift(consumer).accept("one");
+            lift(ConsumerTest::consumeAndThrow).accept("one");
+            lift((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s)).accept("one");
+        } catch (TestCheckedException e) {
+            Assertions.fail("Expecting no exceptions");
+        }
 
-	//////////////////
+        {
+            TestCheckedException exception = assertThrows(TestCheckedException.class, () -> lift(consumer).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestCheckedException exception = assertThrows(TestCheckedException.class, () -> lift(ConsumerTest::consumeAndThrow).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestCheckedException exception = assertThrows(TestCheckedException.class,
+                    () -> lift((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s)).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+    }
 
-	@Test
-	@Disabled
-	void testCommonStuff() {
+    @Test
+    @DisplayName("Testing Consumer. Wrap to Runtime Exception.")
+    @Timeout(1)
+    void testConsumerWrapToRuntime() {
 
-		ConsumerChecked<String, VeryCheckedException> cons = Mockito.mock(ConsumerChecked.class);
+        //wrap to runtime
+        wrap(consumer, toRuntime).accept("one");
+        wrap(ConsumerTest::consumeAndThrow, toRuntime).accept("one");
+        wrap((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s), toRuntime).accept("one");
 
-		try {
-			Stream.of("a", "b", "c").forEach(lift(cons));
+        {
+            TestRuntimeException exception = assertThrows(TestRuntimeException.class, () -> wrap(consumer, toRuntime).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestRuntimeException exception = assertThrows(TestRuntimeException.class,
+                    () -> wrap(ConsumerTest::consumeAndThrow, toRuntime).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestRuntimeException exception = assertThrows(TestRuntimeException.class,
+                    () -> wrap((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s), toRuntime).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
 
-			Mockito.verify(cons, Mockito.times(1)).accept("a");
-			Mockito.verify(cons, Mockito.times(1)).accept("b");
-			Mockito.verify(cons, Mockito.times(1)).accept("c");
-		} catch (VeryCheckedException e) {
-			Assertions.fail("Expecting no exceptions");
-		}
+        Function<TestCheckedException, TestWrappingCheckedException> f = (e) -> new TestWrappingCheckedException(e);
 
-		ConsumerChecked<String, VeryCheckedException.A> ch1 = s -> {
-			if (s.equalsIgnoreCase("a"))
-				throw new VeryCheckedException.A();
-		};
+        try {
+            wrap(ConsumerTest::consumeAndThrowAB, f);
+        } catch (TestWrappingCheckedException e) {
+            e.printStackTrace();
+        }
 
-		Function<Exception, AppCheckedException> transform = AppCheckedException.A::new;
+    }
 
-		try {
-			wrap(ch1, transform).accept("b");
-		} catch (AppCheckedException e) {
-			e.printStackTrace();
-		}
+    @Test
+    @DisplayName("Testing Consumer. Wrap to Checked Exception.")
+    @Timeout(1)
+    void testConsumerWrapToChecked() {
+        //wrap to another checked
+        try {
+            wrap(consumer, toAnotherChecked).accept("one");
+            wrap(ConsumerTest::consumeAndThrow, toAnotherChecked).accept("one");
+            wrap((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s), toAnotherChecked).accept("one");
+        } catch (TestWrappingCheckedException e) {
+            Assertions.fail("Expecting no exceptions");
+        }
 
-		FunctionChecked<Class, Object, Exception> f = Class::newInstance;
+        {
+            TestWrappingCheckedException exception = assertThrows(TestWrappingCheckedException.class, () -> wrap(consumer, toAnotherChecked).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestWrappingCheckedException exception = assertThrows(TestWrappingCheckedException.class,
+                    () -> wrap(ConsumerTest::consumeAndThrow, toAnotherChecked).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+        {
+            TestWrappingCheckedException exception = assertThrows(TestWrappingCheckedException.class,
+                    () -> wrap((ConsumerChecked<String, TestCheckedException>) (s) -> consumeAndThrow(s), toAnotherChecked).accept("exception"));
+            Assertions.assertNotNull(exception);
+        }
+    }
+
+    //////////////////
+
+    @Test
+    @Disabled
+    void testCommonStuff() {
+
+        ConsumerChecked<String, TestCheckedException> cons = Mockito.mock(ConsumerChecked.class);
+
+        try {
+            Stream.of("a", "b", "c").forEach(lift(cons));
+
+            Mockito.verify(cons, Mockito.times(1)).accept("a");
+            Mockito.verify(cons, Mockito.times(1)).accept("b");
+            Mockito.verify(cons, Mockito.times(1)).accept("c");
+        } catch (TestCheckedException e) {
+            Assertions.fail("Expecting no exceptions");
+        }
+
+        ConsumerChecked<String, TestCheckedException.A> ch1 = s -> {
+            if (s.equalsIgnoreCase("a"))
+                throw new TestCheckedException.A();
+        };
+
+        Function<Exception, TestWrappingCheckedException> transform = TestWrappingCheckedException.A::new;
+
+        try {
+            wrap(ch1, transform).accept("b");
+        } catch (TestWrappingCheckedException e) {
+            e.printStackTrace();
+        }
+
+        FunctionChecked<Class, Object, Exception> f = Class::newInstance;
 
 
 			/*Set<Object> collect = Stream.of(String.class, Integer.class)
@@ -198,51 +183,41 @@ public class ConsumerTest {
 			System.out.println(collect.toString());
 			 */
 
-		sneak(ConsumerTest::functionAndThrow);
-		sneak(ConsumerTest::consumeAndThrow);
-		sneak(ConsumerTest::predicateAndThrow);
-		sneak(ConsumerTest::consumeAndThrowAB);
+        sneak(ConsumerTest::functionAndThrow);
+        sneak(ConsumerTest::consumeAndThrow);
+        sneak(ConsumerTest::predicateAndThrow);
+        sneak(ConsumerTest::consumeAndThrowAB);
 
-		try {
-			lift(ConsumerTest::functionAndThrow);
-		} catch (VeryCheckedException e) {
-			e.printStackTrace();
-		}
+        try {
+            lift(ConsumerTest::functionAndThrow);
+        } catch (TestCheckedException e) {
+            e.printStackTrace();
+        }
 
-		try {
-			lift(ConsumerTest::consumeAndThrow);
-		} catch (VeryCheckedException e) {
-			e.printStackTrace();
-		}
+        try {
+            lift(ConsumerTest::consumeAndThrow);
+        } catch (TestCheckedException e) {
+            e.printStackTrace();
+        }
 
-		try {
-			lift(ConsumerTest::predicateAndThrow);
-		} catch (VeryCheckedException e) {
-			e.printStackTrace();
-		}
+        try {
+            lift(ConsumerTest::predicateAndThrow);
+        } catch (TestCheckedException e) {
+            e.printStackTrace();
+        }
 
-		try {
-			lift(ConsumerTest::consumeAndThrowAB);
-		} catch (VeryCheckedException e) {
-			e.printStackTrace();
-		}
+        try {
+            lift(ConsumerTest::consumeAndThrowAB);
+        } catch (TestCheckedException e) {
+            e.printStackTrace();
+        }
 
-		wrap(ConsumerTest::functionAndThrow, toRuntime);
-		wrap(ConsumerTest::consumeAndThrow, toRuntime);
-		wrap(ConsumerTest::predicateAndThrow, toRuntime);
-		wrap(ConsumerTest::consumeAndThrowAB, toRuntime);
+        wrap(ConsumerTest::functionAndThrow, toRuntime);
+        wrap(ConsumerTest::consumeAndThrow, toRuntime);
+        wrap(ConsumerTest::predicateAndThrow, toRuntime);
+        wrap(ConsumerTest::consumeAndThrowAB, toRuntime);
 
-		Stream.of(API.class, Object.class)
-				.map(sneakFunction(this::instance))
-				.forEach(System.out::println);
 
-		try {
-			Stream.of(API.class, Object.class)
-					.map(wrapFunction(Class::newInstance,anyToAnotherChecked))
-					.forEach(System.out::println);
-		} catch (AppCheckedException e) {
-			e.printStackTrace();
-		}
 
 
 
@@ -252,77 +227,75 @@ public class ConsumerTest {
 					(FunctionChecked<Class<String>, String, ReflectiveOperationException>) this::instance, anyToAnotherChecked)
 					.apply(String.class);*/
 
-		Stream.of("a", "b")
-				.filter(sneak(ConsumerTest::predicateAndThrow))
-				.map(sneak(ConsumerTest::functionToBooleanAndThrow))
-				.map(Object::toString)
-				.map(wrap(ConsumerTest::functionAndThrow, toRuntime))
-				.forEach(sneak(ConsumerTest::consumeAndThrow));
+        Stream.of("a", "b")
+                .filter(sneak(ConsumerTest::predicateAndThrow))
+                .map(sneak(ConsumerTest::functionToBooleanAndThrow))
+                .map(Object::toString)
+                .map(wrap(ConsumerTest::functionAndThrow, toRuntime))
+                .forEach(sneak(ConsumerTest::consumeAndThrow));
 
-		FunctionChecked<String, URL, MalformedURLException> stringURLExceptionFunctionChecked = URL::new;
+        FunctionChecked<String, URL, MalformedURLException> stringURLExceptionFunctionChecked = URL::new;
 
 
-			Stream.of("http://www.oracle.com/", "http://www.google.com/")
-					.map(wrapFunction((URL::new),toRuntime))
-					.parallel()
-					.forEach(wrapConsumer((url -> {
+        Stream.of("http://www.oracle.com/", "http://www.google.com/")
+                .map(wrapFunction((URL::new), toRuntime))
+                .parallel()
+                .forEach(wrapConsumer((url -> {
 
-						URLConnection yc = url.openConnection();
-						try (BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));) {
-							String inputLine;
-							while ((inputLine = in.readLine()) != null)
-								System.out.println(inputLine);
-						}
+                    URLConnection yc = url.openConnection();
+                    try (BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));) {
+                        String inputLine;
+                        while ((inputLine = in.readLine()) != null)
+                            System.out.println(inputLine);
+                    }
 
-					}),toRuntime));
-
-		String fileName = "/user/file";
+                }), toRuntime));
 
 
 
-	}
 
-	private <T> T instance(Class<T> clazz) throws IllegalAccessException, InstantiationException {
-		return clazz.newInstance();
-	}
+    }
 
-	private static String functionAndThrow(String s) throws VeryCheckedException {
-		if (s.equalsIgnoreCase("exception"))
-			throw new VeryCheckedException();
-		return s;
-	}
 
-	private static void consumeAndThrow(String s) throws VeryCheckedException {
-		if (s.equalsIgnoreCase("exception"))
-			throw new VeryCheckedException();
-	}
 
-	private static boolean predicateAndThrow(String s) throws VeryCheckedException {
-		if (s.equalsIgnoreCase("exception"))
-			throw new VeryCheckedException();
-		return true;
-	}
 
-	private static Boolean functionToBooleanAndThrow(String s) throws VeryCheckedException {
-		if (s.equalsIgnoreCase("exception"))
-			throw new VeryCheckedException();
-		return true;
-	}
+    @Deprecated
+    private static String functionAndThrow(String s) throws TestCheckedException {
+        if (s.equalsIgnoreCase("exception"))
+            throw new TestCheckedException();
+        return s;
+    }
 
-	private static void consumeAndThrowAB(String s) throws VeryCheckedException.A, VeryCheckedException.B {
+    @Deprecated
+    private static void consumeAndThrow(String s) throws TestCheckedException {
+        if (s.equalsIgnoreCase("exception"))
+            throw new TestCheckedException();
+    }
 
-		if (s.equalsIgnoreCase("exceptionA"))
-			throw new VeryCheckedException.A();
+    @Deprecated
+    private static boolean predicateAndThrow(String s) throws TestCheckedException {
+        if (s.equalsIgnoreCase("exception"))
+            throw new TestCheckedException();
+        return true;
+    }
 
-		if (s.equalsIgnoreCase("exceptionB"))
-			throw new VeryCheckedException.B();
-	}
+    @Deprecated
+    private static Boolean functionToBooleanAndThrow(String s) throws TestCheckedException {
+        if (s.equalsIgnoreCase("exception"))
+            throw new TestCheckedException();
+        return true;
+    }
 
-	private static void isVeryCheckedException(Runnable action) {
-		VeryCheckedException exception = assertThrows(VeryCheckedException.class, () -> {
-			action.run();
-		});
-		Assertions.assertTrue(exception instanceof VeryCheckedException);
-	}
+    @Deprecated
+    private static void consumeAndThrowAB(String s) throws TestCheckedException.A, TestCheckedException.B {
+
+        if (s.equalsIgnoreCase("exceptionA"))
+            throw new TestCheckedException.A();
+
+        if (s.equalsIgnoreCase("exceptionB"))
+            throw new TestCheckedException.B();
+    }
+
+
 
 }
